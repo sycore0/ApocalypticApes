@@ -1,0 +1,2 @@
+merkletreejs --leaves=../whitelists/final.json --hash=keccak256 --hash-leaves --sort --duplicate-odd --output=leaves >> whitelist.json &&
+merkletreejs --leaves=../whitelists/final.json --hash=keccak256 --sort --duplicate-odd --output=leaves >> leaves.json

@@ -4,8 +4,6 @@ pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -22,7 +20,6 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
     }
     
     address payable public treasury;
-    address payable public faucetWallet;
 
     uint256 public price = 0.07 * 10**18; // 1 eth
     bytes32 public rootHash;
@@ -31,17 +28,18 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
 
     string name_ = 'Apocalypse Apes';
     string symbol_ = 'APOCALYPSE';
-    string baseURI_ = 'ipfs://000000000000000000000000000000000000000000/';
+    string baseURI_ = 'ipfs://QmbA4XoyA8b28hiNWG9uAC4Jdq153a1BLtxTSiTHqrpaC4/1.json';
 
     SaleDetails public saleDetails = SaleDetails({
         phase: 0,    // 0 = not started, 1 = whitelist sale, 2 = public sale
         maxBatch: 10,
-        maxBuy: 50,
+        maxBuy: 25,
         totalCount: 8_888,
         totalMinted: 0
     });
     
     mapping(uint16 => address) public ownerByToken;
+    mapping(address => uint8) public walletBuys;
     mapping(address => bytes1) public manualWhitelist;
 
     event MintApe (address indexed buyer, uint256 startWith, uint256 batch);
@@ -49,16 +47,11 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
     constructor() ERC721(name_, symbol_) {
         baseURI = baseURI_;
         treasury = payable(msg.sender);
-        faucetWallet = payable(msg.sender);
       
     }
 
     function totalSupply() public view virtual override returns (uint256) {
         return saleDetails.totalMinted;
-    }
-
-    function _baseURI() internal view virtual override returns (string memory){
-        return baseURI;
     }
 
     function setBaseURI(string memory _newURI) public onlyOwner {
@@ -84,26 +77,27 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
         require(_batchCount > 0 && _batchCount <= saleDetails.maxBatch, "Batch purchase limit exceeded");
         require(saleDetails.totalMinted + _batchCount <= saleDetails.totalCount, "Not enough inventory");
         require(msg.value == _batchCount * price, "Invalid value sent");
+        require(walletBuys[msg.sender] + _batchCount <= saleDetails.maxBuy, "Buy limit reached");
 
         // TODO: Untested verification; need to generate merkle tree with whitelist data
-        if (saleDetails.phase != 0x02 && !verify(proof, rootHash, leaf, msg.sender, authAmnt))
+        if (saleDetails.phase != 0x02 && !verify(proof, leaf, msg.sender, authAmnt))
             require(manualWhitelist[msg.sender] > 0,"Not whitelisted!");
  
         emit MintApe(_msgSender(), saleDetails.totalMinted+1, _batchCount);
         for(uint8 i=0; i< _batchCount; i++){
             _mint(_msgSender(), 1 + saleDetails.totalMinted++);
         }
+        walletBuys[msg.sender] += _batchCount;
     }
 
     function verify(
         bytes32[] memory proof,
-        bytes32 root,
         bytes32 leaf,
         address user,
         uint8 authAmnt
-    ) public pure returns (bool) {
+    ) public view returns (bool) {
         bytes32 trueLeaf = keccak256(abi.encodePacked(user,authAmnt));
-        return MerkleProof.verify(proof, root, trueLeaf) && trueLeaf == leaf;
+        return MerkleProof.verify(proof, rootHash, trueLeaf) && trueLeaf == leaf;
     }
 
     function changeRootHash(bytes32 _rootHash) external onlyOwner {
@@ -153,23 +147,7 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
 
         super._beforeTokenTransfer(from, to, tokenId);
     }
-    
-    /*
-    function burn(uint256 tokenId) public {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721Burnable: caller is not owner nor approved");
-        _burn(tokenId);
-    }
-    
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-        burnCount++;
-    }
 
-    function setTokenURI(uint256 _tokenId, string memory _tokenURI) public onlyOwner {
-        _setTokenURI(_tokenId, _tokenURI);
-    }
-*/
     function tokenURI(uint256 tokenId)
         public
         view
