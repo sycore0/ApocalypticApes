@@ -24,16 +24,16 @@ contract ApocalypticApes is ERC721, ERC721Enumerable, Ownable {
     
     address payable public treasury;
 
-    uint256 public price = 0.07 * 10**18; // 1 eth
+    uint256 public price = 0.07 * 10**18; // 0.07 eth; use "7 * 10**16" in JS
     bytes32 public rootHash;
     string public baseURI;
     
     string name_ = 'Apocalyptic Apes';
-    string symbol_ = 'APOCALYPSE';
-    string baseURI_ = 'ipfs://QmbA4XoyA8b28hiNWG9uAC4Jdq153a1BLtxTSiTHqrpaC4/';
+    string symbol_ = 'AAPES';
+    string baseURI_ = 'ipfs://QmYMscQ1gu5eCaXpjs3XA6154LwhfZxxb9LjQDC9UL155d/';
 
     SaleDetails public saleDetails = SaleDetails({
-        phase: 0,    // 0 = not started, 1 = whitelist sale, 2 = public sale
+        phase: 0,    // 0x00 = not started, 0x01 = whitelist sale, 0x02 = public sale
         maxBatch: 10,
         maxBuy: 25,
         freeMints: 100,
@@ -45,6 +45,9 @@ contract ApocalypticApes is ERC721, ERC721Enumerable, Ownable {
     mapping(uint16 => address) public ownerByToken;
     mapping(address => uint8) public walletBuys;
     mapping(address => bytes1) public manualWhitelist;
+    //  0x00 = none, 0x01 = whitelisted, 
+    //  0x02 or higher up to max buy = free mints
+    //          (turns to whitelist after they mint the free ones)
 
     event MintApe (address indexed buyer, uint256 startWith, uint256 batch);
 
