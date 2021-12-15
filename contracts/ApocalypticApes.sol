@@ -4,17 +4,20 @@ pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
+contract ApocalypticApes is ERC721, ERC721Enumerable, Ownable {
     using MerkleProof for bytes32[];
     
     struct SaleDetails {
         bytes1 phase;
         uint8 maxBatch;
         uint8 maxBuy;
+        uint8 freeMints;
         uint16 totalCount;
         uint256 totalMinted;
     }
@@ -25,19 +28,20 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
     bytes32 public rootHash;
     string public baseURI;
     
-
-    string name_ = 'Apocalypse Apes';
+    string name_ = 'Apocalyptic Apes';
     string symbol_ = 'APOCALYPSE';
-    string baseURI_ = 'ipfs://QmbA4XoyA8b28hiNWG9uAC4Jdq153a1BLtxTSiTHqrpaC4/1.json';
+    string baseURI_ = 'ipfs://QmbA4XoyA8b28hiNWG9uAC4Jdq153a1BLtxTSiTHqrpaC4/';
 
     SaleDetails public saleDetails = SaleDetails({
         phase: 0,    // 0 = not started, 1 = whitelist sale, 2 = public sale
         maxBatch: 10,
         maxBuy: 25,
+        freeMints: 100,
         totalCount: 8_888,
         totalMinted: 0
     });
     
+
     mapping(uint16 => address) public ownerByToken;
     mapping(address => uint8) public walletBuys;
     mapping(address => bytes1) public manualWhitelist;
@@ -52,6 +56,10 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
 
     function totalSupply() public view virtual override returns (uint256) {
         return saleDetails.totalMinted;
+    }
+
+    function _baseURI() internal view virtual override returns (string memory){
+        return baseURI;
     }
 
     function setBaseURI(string memory _newURI) public onlyOwner {
@@ -70,12 +78,10 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
         manualWhitelist[_user] = _status;
     }
 
-
-
     function mintApe(uint8 _batchCount, uint8 authAmnt, bytes32[] memory proof, bytes32 leaf) payable public {
         require(saleDetails.phase != 0, "Sale has not started");
         require(_batchCount > 0 && _batchCount <= saleDetails.maxBatch, "Batch purchase limit exceeded");
-        require(saleDetails.totalMinted + _batchCount <= saleDetails.totalCount, "Not enough inventory");
+        require(saleDetails.totalMinted + _batchCount <= saleDetails.totalCount - saleDetails.freeMints, "Not enough inventory");
         require(msg.value == _batchCount * price, "Invalid value sent");
         require(walletBuys[msg.sender] + _batchCount <= saleDetails.maxBuy, "Buy limit reached");
 
@@ -88,6 +94,21 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
             _mint(_msgSender(), 1 + saleDetails.totalMinted++);
         }
         walletBuys[msg.sender] += _batchCount;
+    }
+    
+    function mintApe() public {
+        require(saleDetails.phase != 0, "Sale has not started");
+        require(saleDetails.totalMinted + 1 <= saleDetails.totalCount, "Not enough inventory");
+        require(manualWhitelist[msg.sender] >= 0x02,"Not whitelisted!");
+ 
+        walletBuys[msg.sender] += 1;
+        manualWhitelist[msg.sender] = bytes1(uint8(manualWhitelist[msg.sender]) - 1);
+        
+        emit MintApe(_msgSender(), saleDetails.totalMinted+1, 1);
+        _mint(_msgSender(), 1 + (saleDetails.totalCount - saleDetails.freeMints));
+
+        saleDetails.totalMinted++;
+        saleDetails.freeMints--;
     }
 
     function verify(
@@ -136,7 +157,7 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
     }
 
     function safeMint(address to, uint256 tokenId) public onlyOwner {
-        saleDetails.totalMinted++;
+        require(saleDetails.totalMinted++ <= saleDetails.totalCount, "No more mints available");
         _safeMint(to, tokenId);
     }
 
@@ -147,7 +168,7 @@ contract ApocalypseApes is ERC721, ERC721Enumerable, Ownable {
 
         super._beforeTokenTransfer(from, to, tokenId);
     }
-
+    
     function tokenURI(uint256 tokenId)
         public
         view

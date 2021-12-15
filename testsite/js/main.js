@@ -1,6 +1,7 @@
 /* eslint-disable prefer-promise-reject-errors */
 /* eslint-disable prettier/prettier */
-
+const { MerkleTree } = require('merkletreejs')
+import { leaves, wallets, Contracts, ABI } from "./data/data";
 let leaf;
 let proof;
 
@@ -20,8 +21,8 @@ let chainid
     duplicateOdd: true,
     isBitcoinTree: false
   }
-  //const tree = new MerkleTree(leaves.map(x => keccak256(x)), 'keccak256',options)
-  const tree = new MerkleTree(JSON.parse(leaves.), 'keccak256',options)
+  const tree = new MerkleTree(leaves.map(x => keccak256(x)), 'keccak256',options)
+  //const tree = new Merkle(leaves, 'keccak256',options)
 
 
 function getProof(){
