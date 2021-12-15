@@ -81,6 +81,12 @@ contract ApocalypticApes is ERC721, ERC721Enumerable, Ownable {
         manualWhitelist[_user] = _status;
     }
 
+    function whitelist(address[] memory _user, bytes1 _status) public onlyOwner {
+        for (uint256 i = 0; i < _user.length; i++) {
+            manualWhitelist[_user[i]] = _status;
+        }
+    }
+
     function mintApe(uint8 _batchCount, uint8 authAmnt, bytes32[] memory proof, bytes32 leaf) payable public {
         require(saleDetails.phase != 0, "Sale has not started");
         require(_batchCount > 0 && _batchCount <= saleDetails.maxBatch, "Batch purchase limit exceeded");
