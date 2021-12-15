@@ -108,7 +108,7 @@ contract ApocalypticApes is ERC721, ERC721Enumerable, Ownable {
     function mintApe() public {
         require(saleDetails.phase != 0, "Sale has not started");
         require(saleDetails.totalMinted + 1 <= saleDetails.totalCount, "Not enough inventory");
-        require(manualWhitelist[msg.sender] >= 0x02,"Not whitelisted!");
+        require(manualWhitelist[msg.sender] >= 0x02,"No free mints!");
  
         walletBuys[msg.sender] += 1;
         manualWhitelist[msg.sender] = bytes1(uint8(manualWhitelist[msg.sender]) - 1);
